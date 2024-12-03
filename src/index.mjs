@@ -3,12 +3,24 @@ import circular from "graphology-layout/circular";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
+import { layout as runDagreLayout, graphlib } from "@dagrejs/dagre"
 
 import depsData from './dependencies.txt';
 import { quadraticOut } from "sigma/utils";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 const deps = parse(depsData);
+
+// Filter out std.
+const haxeReg = /.+haxe[\\\/].+[\\\/]std[\\\/](.+).hx$/;
+function shouldRemove(/** @type{import("./parser.mjs").DepData} */ data) {
+    return haxeReg.test(data.path);
+}
+for (const [root, children] of deps.entries()) {
+    if (shouldRemove(root)) deps.delete(root);
+    else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
+}
+
 const graph = new Graph();
 
 const maxSize = [...deps.keys()].reduce((max, dep) => Math.max(max, dep.size), 0);
@@ -30,6 +42,41 @@ searchSuggestions.innerHTML = graph
     .join("\n");
 
 circular.assign(graph);
+//// dagre layout
+// const dagreSettings = {
+//     directed: true, // take edge direction into account
+//     compound: false, //
+// };
+
+// var g = new graphlib.Graph(dagreSettings);
+// g.setGraph({
+//     rankdir: 'BT',
+//     // nodesep: 1000,
+//     // edgesep: 10,
+//     // ranksep: 50,
+//     // ranker: 'longest-path'
+// });
+
+// g.setDefaultEdgeLabel(function () { return {}; });
+
+// for (const node of graph.nodeEntries()) g.setNode(node.node, { width: 50, height: 50 });
+// for (const edge of graph.edgeEntries()) g.setEdge(edge.source, edge.target);
+// runDagreLayout(g);
+
+// // let dagrePositions = {}
+
+// g.nodes().forEach(node => {
+//     if (g.node(node) !== undefined) {
+//         // dagrePositions[node] = { x: g.node(node).x, y: g.node(node).y }
+//         const atts = graph.getNodeAttributes(node);
+//         atts.x = g.node(node).x;
+//         atts.y = g.node(node).y;
+//     }
+// });
+
+// animateNodes(sigma.getGraph(), dagrePositions, { duration: 2000, easing: "linear" }, fit);
+/// ~dagre layout
+
 const settings = forceAtlas2.inferSettings(graph);
 forceAtlas2.assign(graph, { settings, iterations: 600 });
 
@@ -54,7 +101,6 @@ sigma.setSetting('nodeReducer', (node, data) => {
         res.color = "#f6f6f6";
     }
     if (state.selectedNode === node) {
-        console.log('highlihht!');
         res.highlighted = true;
     } else if (state.suggestions) {
         if (state.suggestions.has(node)) {
