@@ -21,8 +21,18 @@
       padding: 0;
       overflow: hidden;
     }
+
+    #search {
+      position: absolute;
+      right: 1em;
+      top: 1em;
+    }
   </style>
   <div id="container"></div>
+  <div id="search">
+    <input type="search" id="search-input" list="suggestions" placeholder="Filter/search regex..." />
+    <datalist id="suggestions"></datalist>
+  </div>
   <script src="bundle.js"></script>
 </body>
 

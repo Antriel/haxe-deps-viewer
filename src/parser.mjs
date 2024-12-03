@@ -7,7 +7,7 @@ export function parse(txt) {
     const deps = new Map();
     /** @type {Set<DepData>} */
     let cur;
-    for (const l of lines) {
+    for (const l of lines) if (l.length > 0) {
         if (l.charAt(0) !== '	') {
             const obj = getData(l.substring(0, l.length - 1));
             cur = deps.get(obj);
@@ -19,6 +19,7 @@ export function parse(txt) {
             cur.add(getData(l.substring(1)));
         }
     }
+    for (const [dep, ch] of deps) dep.size = ch.size;
     return deps;
 }
 
@@ -60,4 +61,5 @@ function parseLabel(path) {
  * @typedef {Object} DepData
  * @property {string} path
  * @property {string} label
+ * @property {number} size
  */
