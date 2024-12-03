@@ -1,0 +1,18 @@
+{
+  "name": "haxe-deps-viewer",
+  "version": "1.0.0",
+  "description": "Haxe dependencies viewer.",
+  "author": "Peter Achberger",
+  "license": "MIT",
+  "scripts": {
+    "dev": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js --servedir=public --serve=5000"
+  },
+  "dependencies": {
+    "esbuild": "^0.24.0",
+    "graphology": "^0.25.4",
+    "graphology-components": "^1.5.4",
+    "graphology-layout": "^0.6.1",
+    "graphology-layout-forceatlas2": "^0.10.1",
+    "sigma": "^3.0.0-beta.38"
+  }
+}
