@@ -3,10 +3,8 @@ import circular from "graphology-layout/circular";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
-import { layout as runDagreLayout, graphlib } from "@dagrejs/dagre"
 
 import depsData from './dependencies.txt';
-import { quadraticOut } from "sigma/utils";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 const deps = parse(depsData);
@@ -21,7 +19,7 @@ for (const [root, children] of deps.entries()) {
     else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
 }
 
-const graph = new Graph();
+const graph = new Graph({ multi: true });
 
 const maxSize = [...deps.keys()].reduce((max, dep) => Math.max(max, dep.size), 0);
 
@@ -33,53 +31,53 @@ for (const [key, children] of deps) {
     add(key);
     for (const child of children) {
         add(child);
-        graph.addDirectedEdge(key.path, child.path, { type: 'arrow' });
+        const weight = (deps.get(child)?.size ?? 0) + 1;
+        graph.addDirectedEdge(key.path, child.path, { type: 'arrow', weight });
     }
 }
+
 searchSuggestions.innerHTML = graph
     .nodes()
     .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
     .join("\n");
 
-circular.assign(graph);
-//// dagre layout
-// const dagreSettings = {
-//     directed: true, // take edge direction into account
-//     compound: false, //
-// };
+// circular.assign(graph);
+for (const node of deps.keys()) {
+    const atts = graph.getNodeAttributes(node.path);
+    atts.y = node.size * 60;
+    // TOOD x based on packs?
+    atts.x = 10;
+}
 
-// var g = new graphlib.Graph(dagreSettings);
-// g.setGraph({
-//     rankdir: 'BT',
-//     // nodesep: 1000,
-//     // edgesep: 10,
-//     // ranksep: 50,
-//     // ranker: 'longest-path'
-// });
-
-// g.setDefaultEdgeLabel(function () { return {}; });
-
-// for (const node of graph.nodeEntries()) g.setNode(node.node, { width: 50, height: 50 });
-// for (const edge of graph.edgeEntries()) g.setEdge(edge.source, edge.target);
-// runDagreLayout(g);
-
-// // let dagrePositions = {}
-
-// g.nodes().forEach(node => {
-//     if (g.node(node) !== undefined) {
-//         // dagrePositions[node] = { x: g.node(node).x, y: g.node(node).y }
-//         const atts = graph.getNodeAttributes(node);
-//         atts.x = g.node(node).x;
-//         atts.y = g.node(node).y;
-//     }
-// });
-
-// animateNodes(sigma.getGraph(), dagrePositions, { duration: 2000, easing: "linear" }, fit);
-/// ~dagre layout
+// Let's try adding edges between types within the same pack.
+const packToNodes = new Map();
+for (const node of deps.keys()) {
+    const pack = node.label.split('/');
+    pack.pop();
+    while (pack.length) {
+        const packStr = pack.join('/');
+        if (!packToNodes.has(packStr)) packToNodes.set(packStr, []);
+        packToNodes.get(packStr).push(node);
+        pack.pop();
+    }
+}
+const edges = [];
+for (const arr of packToNodes.values()) {
+    for (let i = 0; i < arr.length - 1; i++) {
+        for (let j = i; j < arr.length - 1; j++) {
+            edges.push(graph.addUndirectedEdge(arr[i].path, arr[j + 1].path, { weight: 1.5 }));
+        }
+    }
+}
 
 const settings = forceAtlas2.inferSettings(graph);
-forceAtlas2.assign(graph, { settings, iterations: 600 });
+settings.outboundAttractionDistribution = true;
+settings.edgeWeightInfluence = 0.5;
+settings.slowDown = 2;
+forceAtlas2.assign(graph, { settings, iterations: 1000 });
 
+// Drop pack edges.
+for (const edge of edges) graph.dropEdge(edge);
 
 const sigma = new Sigma(graph, document.getElementById("container"));
 const state = {};

@@ -8,7 +8,6 @@
     "dev": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js --servedir=public --serve=5000"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.4",
     "esbuild": "^0.24.0",
     "graphology": "^0.25.4",
     "graphology-components": "^1.5.4",
