@@ -1,11 +1,11 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-import { singleSource, bidirectional } from 'graphology-shortest-path/unweighted';
+import { bidirectional, singleSourceLength } from 'graphology-shortest-path/unweighted';
+import { edgePathFromNodePath } from "graphology-shortest-path";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import depsData from './dependencies.txt';
 import randomColor from "randomcolor";
-import { edgePathFromNodePath } from "graphology-shortest-path";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 const deps = parse(depsData);
@@ -164,7 +164,7 @@ sigma.setSetting('nodeReducer', (node, data) => {
         res.label = "";
         res.color = "#f6f6f6";
         if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[node]) {
-            let c = Math.floor(100 + (state.distances[node].length / state.maxDist) * 120).toString(16);
+            let c = Math.floor(100 + (state.distances[node] / state.maxDist) * 120).toString(16);
             if (c.length == 1) c = '0' + c;
             res.color = '#' + c + c + c;
         }
@@ -186,11 +186,14 @@ sigma.setSetting("edgeReducer", (edge, data) => {
     const res = { ...data };
     const mainNode = state.hoveredNode ?? state.selectedNode;
     const target = graph.target(edge);
+    const src = graph.source(edge);
     if (state.highlightEdges?.includes(edge)) {
         res.color = '#3333cc';
         res.size = 2.5;
-    } else if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[target]) {
-        const strength = 255 / (2 ** (state.distances[target].length - 1));
+    } else if (state.cycleEdges?.has(edge)) {
+        res.color = '#cc3333';
+    } else if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[src] != undefined && target != state.selectedNode) {
+        const strength = 255 / (2 ** (state.distances[src]));
         let c = Math.floor(255 - strength).toString(16);
         if (c.length == 1) c = '0' + c;
         res.color = '#' + c + c + c;
@@ -213,14 +216,21 @@ sigma.on('leaveNode', () => setHoveredNode(undefined));
 sigma.on('clickNode', ({ node }) => {
     state.selectedNode = node;
     state.selectedNeighbors = new Set(graph.outNeighbors(node));
-    state.distances = singleSource(graph, node);
-    state.maxDist = Object.values(state.distances).reduce((dist, { length }) => Math.max(dist, length), 0);
+    state.distances = singleSourceLength(graph, node);
+    state.maxDist = Object.values(state.distances).reduce((dist, length) => Math.max(dist, length), 0);
+    state.cycleEdges = new Set();
+    for (const neigh of state.selectedNeighbors.values()) {
+        const path = bidirectional(graph, neigh, node);
+        if (path) edgePathFromNodePath(graph, [node, ...path])
+            .forEach(state.cycleEdges.add, state.cycleEdges);
+    }
     sigma.refresh({ skipIndexation: true });
 });
 sigma.on('clickStage', () => {
     state.selectedNode = undefined;
     state.selectedNeighbors = undefined;
     state.distances = undefined;
+    state.cycleEdges = undefined;
     sigma.refresh({ skipIndexation: true });
 });
 
