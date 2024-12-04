@@ -1,5 +1,6 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
+import { singleSource } from 'graphology-shortest-path/unweighted';
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import depsData from './dependencies.txt';
@@ -156,6 +157,11 @@ sigma.setSetting('nodeReducer', (node, data) => {
     if (neighbors && !neighbors.has(node) && mainNode !== node) {
         res.label = "";
         res.color = "#f6f6f6";
+        if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[node]) {
+            let c = Math.floor(100 + (state.distances[node].length / state.maxDist) * 120).toString(16);
+            if (c.length == 1) c = '0' + c;
+            res.color = '#' + c + c + c;
+        }
     }
     if (state.selectedNode === node) {
         res.highlighted = true;
@@ -173,16 +179,20 @@ sigma.setSetting('nodeReducer', (node, data) => {
 sigma.setSetting("edgeReducer", (edge, data) => {
     const res = { ...data };
     const mainNode = state.hoveredNode ?? state.selectedNode;
-    if (
+    const target = graph.target(edge);
+    if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[target]) {
+        const strength = 255 / (2 ** (state.distances[target].length - 1));
+        let c = Math.floor(255 - strength).toString(16);
+        if (c.length == 1) c = '0' + c;
+        res.color = '#' + c + c + c;
+    } else if (
         mainNode &&
-        !graph.extremities(edge).every((n) => n === mainNode || graph.areInboundNeighbors(n, mainNode))
+        !graph.extremities(edge).every((n) => n === mainNode || graph.areInNeighbors(n, mainNode))
     ) {
         res.hidden = true;
-    }
-
-    if (
+    } else if (
         state.suggestions &&
-        (!state.suggestions.has(graph.source(edge)) || !state.suggestions.has(graph.target(edge)))
+        (!state.suggestions.has(graph.source(edge)) || !state.suggestions.has(target))
     ) {
         res.hidden = true;
     }
@@ -194,11 +204,14 @@ sigma.on('leaveNode', () => setHoveredNode(undefined));
 sigma.on('clickNode', ({ node }) => {
     state.selectedNode = node;
     state.selectedNeighbors = new Set(graph.outNeighbors(node));
+    state.distances = singleSource(graph, node);
+    state.maxDist = Object.values(state.distances).reduce((dist, { length }) => Math.max(dist, length), 0);
     sigma.refresh({ skipIndexation: true });
 });
 sigma.on('clickStage', () => {
     state.selectedNode = undefined;
     state.selectedNeighbors = undefined;
+    state.distances = undefined;
     sigma.refresh({ skipIndexation: true });
 });
 

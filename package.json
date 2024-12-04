@@ -13,6 +13,7 @@
     "graphology-components": "^1.5.4",
     "graphology-layout": "^0.6.1",
     "graphology-layout-forceatlas2": "^0.10.1",
+    "graphology-shortest-path": "^2.1.0",
     "randomcolor": "github:Antriel/randomColor",
     "sigma": "^3.0.0-beta.38"
   }
