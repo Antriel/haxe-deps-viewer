@@ -94,7 +94,9 @@ function setHoveredNode(node) {
 }
 sigma.setSetting('nodeReducer', (node, data) => {
     const res = { ...data };
-    if (state.hoveredNeighbors && !state.hoveredNeighbors.has(node) && state.hoveredNode !== node) {
+    const mainNode = state.hoveredNode ?? state.selectedNode;
+    const neighbors = state.hoveredNeighbors ?? state.selectedNeighbors;
+    if (neighbors && !neighbors.has(node) && mainNode !== node) {
         res.label = "";
         res.color = "#f6f6f6";
     }
@@ -113,9 +115,10 @@ sigma.setSetting('nodeReducer', (node, data) => {
 
 sigma.setSetting("edgeReducer", (edge, data) => {
     const res = { ...data };
+    const mainNode = state.hoveredNode ?? state.selectedNode;
     if (
-        state.hoveredNode &&
-        !graph.extremities(edge).every((n) => n === state.hoveredNode || graph.areInboundNeighbors(n, state.hoveredNode))
+        mainNode &&
+        !graph.extremities(edge).every((n) => n === mainNode || graph.areInboundNeighbors(n, mainNode))
     ) {
         res.hidden = true;
     }
@@ -131,6 +134,16 @@ sigma.setSetting("edgeReducer", (edge, data) => {
 });
 sigma.on('enterNode', ({ node }) => setHoveredNode(node));
 sigma.on('leaveNode', () => setHoveredNode(undefined));
+sigma.on('clickNode', ({ node }) => {
+    state.selectedNode = node;
+    state.selectedNeighbors = new Set(graph.outNeighbors(node));
+    sigma.refresh({ skipIndexation: true });
+});
+sigma.on('clickStage', () => {
+    state.selectedNode = undefined;
+    state.selectedNeighbors = undefined;
+    sigma.refresh({ skipIndexation: true });
+});
 
 function setSearchQuery(query) {
     state.searchQuery = query;
@@ -162,7 +175,4 @@ function setSearchQuery(query) {
 
 searchInput.addEventListener("input", () => {
     setSearchQuery(searchInput.value || "");
-});
-searchInput.addEventListener("blur", () => {
-    setSearchQuery("");
 });
