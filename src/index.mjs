@@ -1,10 +1,11 @@
 import Graph from "graphology";
 import forceAtlas2 from "graphology-layout-forceatlas2";
-import { singleSource } from 'graphology-shortest-path/unweighted';
+import { singleSource, bidirectional } from 'graphology-shortest-path/unweighted';
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import depsData from './dependencies.txt';
 import randomColor from "randomcolor";
+import { edgePathFromNodePath } from "graphology-shortest-path";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 const deps = parse(depsData);
@@ -143,9 +144,14 @@ function setHoveredNode(node) {
     if (node) {
         state.hoveredNode = node;
         state.hoveredNeighbors = new Set(graph.outNeighbors(node));
+        if (state.selectedNode) {
+            const paths = bidirectional(graph, state.selectedNode, state.hoveredNode);
+            if (paths) state.highlightEdges = edgePathFromNodePath(graph, paths);
+        }
     } else {
         state.hoveredNode = undefined;
         state.hoveredNeighbors = undefined;
+        state.highlightEdges = undefined;
     }
 
     sigma.refresh({ skipIndexation: true });
@@ -180,7 +186,10 @@ sigma.setSetting("edgeReducer", (edge, data) => {
     const res = { ...data };
     const mainNode = state.hoveredNode ?? state.selectedNode;
     const target = graph.target(edge);
-    if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[target]) {
+    if (state.highlightEdges?.includes(edge)) {
+        res.color = '#3333cc';
+        res.size = 2.5;
+    } else if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[target]) {
         const strength = 255 / (2 ** (state.distances[target].length - 1));
         let c = Math.floor(255 - strength).toString(16);
         if (c.length == 1) c = '0' + c;
