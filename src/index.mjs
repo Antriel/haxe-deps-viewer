@@ -1,10 +1,9 @@
 import Graph from "graphology";
-import circular from "graphology-layout/circular";
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
-
 import depsData from './dependencies.txt';
+import randomColor from "randomcolor";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 const deps = parse(depsData);
@@ -25,7 +24,10 @@ const maxSize = [...deps.keys()].reduce((max, dep) => Math.max(max, dep.size), 0
 
 function add(node) {
     if (!graph.hasNode(node.path))
-        graph.addNode(node.path, { label: node.label, size: 1 + (node.size / maxSize) * 15 });
+        graph.addNode(node.path, {
+            label: node.label,
+            size: 1 + (node.size / maxSize) * 15,
+        });
 }
 for (const [key, children] of deps) {
     add(key);
@@ -61,6 +63,61 @@ for (const node of deps.keys()) {
         pack.pop();
     }
 }
+const packToColors = {
+    sub: new Map()
+};
+function getColorData(pack) {
+    let colors = packToColors;
+    for (const step of pack) {
+        if (!colors.sub.has(step)) colors.sub.set(step, {
+            sub: new Map(),
+            nodes: [],
+            color: 0,
+        });
+        colors = colors.sub.get(step);
+    }
+    return colors;
+}
+for (const node of deps.keys()) {
+    const pack = node.label.split('/');
+    pack.pop();
+    // Consider no package as package, so colors are spread over.
+    if (pack.length === 0) pack.push('');
+    getColorData(pack).nodes.push(node);
+}
+function setColors(color) {
+    for (const node of color.nodes) {
+        graph.setNodeAttribute(node.path, 'color', color.color);
+    }
+    if (color.nodes.length == 0 && color.sub.size <= 1) {
+        // Propagate the same color if this pack has nothing but single pack.
+        for (const sub of color.sub.values()) {
+            sub.color = color.color;
+            setColors(sub);
+        }
+    } else {
+        const colors = randomColor({
+            hue: color.color,
+            count: packToColors.sub.size,
+            seed: 'consistencyplsthx',
+        });
+        for (const sub of color.sub.values()) {
+            sub.color = colors.pop();
+            setColors(sub);
+        }
+    }
+}
+// Main colors.
+const colors = randomColor({
+    luminosity: 'dark',
+    count: packToColors.sub.size,
+    seed: 'consistencyplsthx',
+});
+for (const sub of packToColors.sub.values()) {
+    sub.color = colors.pop();
+    setColors(sub);
+}
+
 const edges = [];
 for (const arr of packToNodes.values()) {
     for (let i = 0; i < arr.length - 1; i++) {
