@@ -4,40 +4,9 @@ import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import depsData from './dependencies.txt';
 import createGraph from "./createGraph.mjs";
+import { config, onConfigChanged } from './config.mjs';
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
-const cfgDiv = document.getElementById("config-panel");
-document.getElementById("config-button").addEventListener('click', () => cfgDiv.classList.toggle('hidden'));
-/** @type{import('./createGraph.mjs').GraphConfig} */
-const config = {};
-
-function addCheckbox(id, label, defVal, onChange) {
-    const row = document.createElement('div');
-    row.classList.add('config-row');
-    cfgDiv.appendChild(row);
-    const labelE = document.createElement('label');
-    labelE.textContent = label;
-    labelE.setAttribute('for', id);
-    const checkbox = document.createElement('input');
-    checkbox.type = 'checkbox';
-    checkbox.id = id;
-    const savedValue = localStorage?.getItem(id) ?? JSON.stringify(defVal);
-    checkbox.checked = savedValue === 'true';
-    config[id] = checkbox.checked;
-    checkbox.addEventListener('change', function () {
-        localStorage.setItem(id, JSON.stringify(checkbox.checked));
-        config[id] = checkbox.checked;
-        onChange?.();
-        if (sigma) {
-            graph = createGraph(copyDeps(), config);
-            sigma.setGraph(graph);
-        }
-    });
-    row.appendChild(checkbox);
-    row.appendChild(labelE);
-}
-addCheckbox('hideStd', 'hide Haxe Std library', true);
-addCheckbox('hideImport', 'hide import.hx', true);
 
 const deps = parse(depsData);
 function copyDeps() {
@@ -47,6 +16,10 @@ function copyDeps() {
 }
 
 let graph = createGraph(copyDeps(), config);
+onConfigChanged.run = () => {
+    graph = createGraph(copyDeps(), config);
+    sigma.setGraph(graph);
+};
 
 searchSuggestions.innerHTML = graph
     .nodes()

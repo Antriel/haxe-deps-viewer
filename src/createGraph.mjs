@@ -17,6 +17,7 @@ const importReg = /.+\/import.hx$/;
  * @typedef {Object} GraphConfig
  * @property {boolean} hideStd
  * @property {boolean} hideImport
+ * @property {{reg:string,enabled:boolean}[]} hideCustom
  */
 
 /**
@@ -46,10 +47,17 @@ export default function createGraph(deps, config) {
         getColorData(pack).nodes.push(node);
     }
 
+    const customRemoves = config.hideCustom.filter(c => c.enabled)
+        .map(c => {
+            try { return new RegExp(c.reg); } catch (e) { return null; }
+        });
+
     function shouldRemove(/** @type{import("./parser.mjs").DepData} */ data) {
         let rem = false;
         if (config.hideStd) rem = rem || haxeReg.test(data.path);
         if (config.hideImport) rem = rem || importReg.test(data.path);
+        rem = rem || customRemoves.some(r => r?.test(data.path));
+
         return rem;
     }
     for (const [root, children] of deps.entries()) {
