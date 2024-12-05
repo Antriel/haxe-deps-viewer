@@ -1,142 +1,57 @@
-import Graph from "graphology";
-import forceAtlas2 from "graphology-layout-forceatlas2";
 import { bidirectional, singleSourceLength } from 'graphology-shortest-path/unweighted';
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import depsData from './dependencies.txt';
-import randomColor from "randomcolor";
+import createGraph from "./createGraph.mjs";
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
+const cfgDiv = document.getElementById("config-panel");
+document.getElementById("config-button").addEventListener('click', () => cfgDiv.classList.toggle('hidden'));
+/** @type{import('./createGraph.mjs').GraphConfig} */
+const config = {};
+
+function addCheckbox(id, label, defVal, onChange) {
+    const row = document.createElement('div');
+    row.classList.add('config-row');
+    cfgDiv.appendChild(row);
+    const labelE = document.createElement('label');
+    labelE.textContent = label;
+    labelE.setAttribute('for', id);
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = id;
+    const savedValue = localStorage?.getItem(id) ?? JSON.stringify(defVal);
+    checkbox.checked = savedValue === 'true';
+    config[id] = checkbox.checked;
+    checkbox.addEventListener('change', function () {
+        localStorage.setItem(id, JSON.stringify(checkbox.checked));
+        config[id] = checkbox.checked;
+        onChange?.();
+        if (sigma) {
+            graph = createGraph(copyDeps(), config);
+            sigma.setGraph(graph);
+        }
+    });
+    row.appendChild(checkbox);
+    row.appendChild(labelE);
+}
+addCheckbox('hideStd', 'hide Haxe Std library', true);
+addCheckbox('hideImport', 'hide import.hx', true);
+
 const deps = parse(depsData);
-
-// Filter out std.
-const haxeReg = /.+haxe[\\\/].+[\\\/]std[\\\/](.+).hx$/;
-function shouldRemove(/** @type{import("./parser.mjs").DepData} */ data) {
-    return haxeReg.test(data.path);
-}
-for (const [root, children] of deps.entries()) {
-    if (shouldRemove(root)) deps.delete(root);
-    else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
+function copyDeps() {
+    const copy = new Map();
+    for (const [key, set] of deps) copy.set(key, new Set(set));
+    return copy;
 }
 
-const graph = new Graph({ multi: true });
-
-const maxSize = [...deps.keys()].reduce((max, dep) => Math.max(max, dep.size), 0);
-
-function add(node) {
-    if (!graph.hasNode(node.path))
-        graph.addNode(node.path, {
-            label: node.label,
-            size: 1 + (node.size / maxSize) * 15,
-        });
-}
-for (const [key, children] of deps) {
-    add(key);
-    for (const child of children) {
-        add(child);
-        const weight = (deps.get(child)?.size ?? 0) + 1;
-        graph.addDirectedEdge(key.path, child.path, { type: 'arrow', weight });
-    }
-}
+let graph = createGraph(copyDeps(), config);
 
 searchSuggestions.innerHTML = graph
     .nodes()
     .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
     .join("\n");
-
-// circular.assign(graph);
-for (const node of deps.keys()) {
-    const atts = graph.getNodeAttributes(node.path);
-    atts.y = node.size * 60;
-    // TOOD x based on packs?
-    atts.x = 10;
-}
-
-// Let's try adding edges between types within the same pack.
-const packToNodes = new Map();
-for (const node of deps.keys()) {
-    const pack = node.label.split('/');
-    pack.pop();
-    while (pack.length) {
-        const packStr = pack.join('/');
-        if (!packToNodes.has(packStr)) packToNodes.set(packStr, []);
-        packToNodes.get(packStr).push(node);
-        pack.pop();
-    }
-}
-const packToColors = {
-    sub: new Map()
-};
-function getColorData(pack) {
-    let colors = packToColors;
-    for (const step of pack) {
-        if (!colors.sub.has(step)) colors.sub.set(step, {
-            sub: new Map(),
-            nodes: [],
-            color: 0,
-        });
-        colors = colors.sub.get(step);
-    }
-    return colors;
-}
-for (const node of deps.keys()) {
-    const pack = node.label.split('/');
-    pack.pop();
-    // Consider no package as package, so colors are spread over.
-    if (pack.length === 0) pack.push('');
-    getColorData(pack).nodes.push(node);
-}
-function setColors(color) {
-    for (const node of color.nodes) {
-        graph.setNodeAttribute(node.path, 'color', color.color);
-    }
-    if (color.nodes.length == 0 && color.sub.size <= 1) {
-        // Propagate the same color if this pack has nothing but single pack.
-        for (const sub of color.sub.values()) {
-            sub.color = color.color;
-            setColors(sub);
-        }
-    } else {
-        const colors = randomColor({
-            hue: color.color,
-            count: packToColors.sub.size,
-            seed: 'consistencyplsthx',
-        });
-        for (const sub of color.sub.values()) {
-            sub.color = colors.pop();
-            setColors(sub);
-        }
-    }
-}
-// Main colors.
-const colors = randomColor({
-    luminosity: 'dark',
-    count: packToColors.sub.size,
-    seed: 'consistencyplsthx',
-});
-for (const sub of packToColors.sub.values()) {
-    sub.color = colors.pop();
-    setColors(sub);
-}
-
-const edges = [];
-for (const arr of packToNodes.values()) {
-    for (let i = 0; i < arr.length - 1; i++) {
-        for (let j = i; j < arr.length - 1; j++) {
-            edges.push(graph.addUndirectedEdge(arr[i].path, arr[j + 1].path, { weight: 1.5 }));
-        }
-    }
-}
-
-const settings = forceAtlas2.inferSettings(graph);
-settings.outboundAttractionDistribution = true;
-settings.edgeWeightInfluence = 0.5;
-settings.slowDown = 2;
-forceAtlas2.assign(graph, { settings, iterations: 1000 });
-
-// Drop pack edges.
-for (const edge of edges) graph.dropEdge(edge);
 
 const sigma = new Sigma(graph, document.getElementById("container"));
 const state = {};

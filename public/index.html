@@ -9,7 +9,7 @@
 <body>
   <style>
     body {
-      font-family: sans-serif;
+      font-family: "Consolas", "Courier New", monospace;
     }
 
     html,
@@ -27,12 +27,59 @@
       right: 1em;
       top: 1em;
     }
+
+    #config-panel {
+      position: absolute;
+      left: 0.5rem;
+      top: 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      font-size: 0.875rem;
+      background-color: #f4f4f4;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+      transition: left 0.3s ease;
+    }
+
+    #config-panel.hidden {
+      left: -100%;
+    }
+
+    #config-button {
+      position: fixed;
+      top: 0.5rem;
+      left: 0.5rem;
+      border: none;
+      padding: 0.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    #config-button:hover {
+      filter: brightness(85%);
+    }
+
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0rem 0.2rem;
+    }
+
+    label {
+      cursor: pointer;
+      user-select: none;
+    }
   </style>
   <div id="container"></div>
   <div id="search">
     <input type="search" id="search-input" list="suggestions" placeholder="Filter/search..." />
     <datalist id="suggestions"></datalist>
   </div>
+  <button id="config-button">⚙️ Config</button>
+  <div id="config-panel" class="hidden"></div>
   <script src="bundle.js"></script>
 </body>
 

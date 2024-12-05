@@ -33,7 +33,6 @@ export function parse(txt) {
             cur.add(getData(l.substring(1)));
         }
     }
-    for (const [dep, ch] of deps) dep.size = ch.size;
     // Find most common prefix across all, and remove it, for unlabeled deps.
     let prefix = null;
     for (const dep of objMap.values()) {
@@ -58,9 +57,11 @@ export function parse(txt) {
 
 // TODO make these regexes configurable.
 const labelRegexes = [
-    /.+haxe[\\\/].+[\\\/]std[\\\/](.+).hx$/,
-    /.+src[\\\/](.+).hx$/,
+    /.+haxe\/.+\/std\/(.+).hx$/,
+    /.+src\/(.+).hx$/,
     /.+haxe_libraries\/.+\/.+\/haxelib\/(.+).hx$/,
+    /.+haxe_modules\/.+\/(.+).hx$/,
+    /.+haxelib_system\/(.+).hx$/,
 ]
 /**
  * @param {string} path
