@@ -13,11 +13,26 @@ const edgeAtts = new Map();
 const haxeReg = /.+haxe\/.+\/std\/(.+).hx$/;
 const importReg = /.+\/import.hx$/;
 
+
+const labelStd = /.+haxe\/.+\/std\/(.+).hx$/;
+const labelSrc = /.+src\/(.+).hx$/;
+const labelHaxelib = [
+    /.+haxe_libraries\/.+\/.+\/haxelib\/(.+).hx$/,
+    /.+haxe_modules\/.+\/(.+).hx$/,
+    /.+haxelib_system\/(.+).hx$/,
+];
+
 /**
  * @typedef {Object} GraphConfig
  * @property {boolean} hideStd
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
+ * @property {boolean} smartLabelsStd
+ * @property {boolean} smartLabelsSrc
+ * @property {boolean} smartLabelsHaxelib
+ * @property {boolean} smartLabelsPrefix
+ * @property {{reg:string,enabled:boolean}[]} smartLabelsCustom
+ * 
  */
 
 /**
@@ -25,6 +40,42 @@ const importReg = /.+\/import.hx$/;
  * @param {GraphConfig} config
  */
 export default function createGraph(deps, config) {
+    // Set labels.
+    const activeLabelRegs = config.smartLabelsCustom.filter(c => c.enabled)
+        .map(c => {
+            try { return new RegExp(c.reg); } catch (e) { return null; }
+        });
+    if (config.smartLabelsStd) activeLabelRegs.push(labelStd);
+    if (config.smartLabelsSrc) activeLabelRegs.push(labelSrc);
+    if (config.smartLabelsHaxelib) activeLabelRegs.push(...labelHaxelib);
+
+    function parseLabel(path) {
+        for (const r of activeLabelRegs) if (r) {
+            const matches = r.exec(path);
+            if (matches && matches.at(1)?.length > 0) return matches.at(1);
+        }
+        if (path.indexOf('/') == -1) return path;
+    }
+    // Find most common prefix across all, and remove it, for unlabeled deps.
+    let prefix = null;
+    for (const dep of deps.keys()) {
+        dep.label = parseLabel(dep.path);
+        if (dep.label) continue;
+        if (prefix === null) prefix = dep.path;
+        else while (!dep.path.startsWith(prefix)) {
+            const parts = prefix.split(/(?!\/)/g); // Split by, but keep `/`.
+            parts.pop();
+            prefix = parts.join('');
+            if (prefix === "") break;
+        }
+        if (prefix === "") break;
+    }
+    if (prefix !== "" && config.smartLabelsPrefix) for (const dep of deps.keys()) {
+        if (dep.label) continue;
+        dep.label = dep.path.substring(prefix.length);
+        // Remove `.hx`.
+        if (dep.label.endsWith('.hx')) dep.label = dep.label.substring(0, dep.label.length - 3);
+    } else for (const dep of deps.keys()) dep.label ??= dep.path;
     // Init colors.
     const packToColors = { sub: new Map() };
     function getColorData(pack) {
@@ -73,8 +124,9 @@ export default function createGraph(deps, config) {
     function add(node) {
         if (!graph.hasNode(node.path)) {
             if (!nodeIds.has(node.path)) nodeIds.set(node.path, ++idCounter);
-            if (!nodeAtts.has(node.path)) nodeAtts.set(node.path, { label: node.label });
+            if (!nodeAtts.has(node.path)) nodeAtts.set(node.path, {});
             const atts = nodeAtts.get(node.path);
+            atts.label = node.label;
             atts.size = 1 + (node.size / maxSize) * 15;
             graph.addNode(node.path, atts);
             posGraph.addNode(node.path, atts);
