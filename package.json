@@ -5,7 +5,8 @@
   "author": "Peter Achberger",
   "license": "MIT",
   "scripts": {
-    "dev": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js --servedir=public --serve=5000"
+    "dev": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js --servedir=public --serve=5000",
+    "build": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js"
   },
   "dependencies": {
     "esbuild": "^0.24.0",

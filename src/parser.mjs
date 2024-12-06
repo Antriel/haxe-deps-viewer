@@ -1,7 +1,7 @@
 /**
  * @param {string} txt 
  */
-export function parse(txt) {
+export function parse(txt, isDependants = false) {
     const lines = txt.split(/\r?\n/);
     /** @type {Map<DepData,Set<DepData>>} */
     const deps = new Map();
@@ -24,10 +24,14 @@ export function parse(txt) {
     let cur;
     for (const l of lines) if (l.length > 0) {
         if (l.charAt(0) !== '	') {
-            const obj = getData(l.substring(0, l.length - 1));
-            cur = deps.get(obj);
+            cur = getData(l.substring(0, l.length - 1));
         } else {
-            cur.add(getData(l.substring(1)));
+            const sub = getData(l.substring(1));
+            if (isDependants) { // `sub` is owner, `cur` is dependency.
+                deps.get(sub).add(cur);
+            } else { // `cur` is owner, `sub` is dependency.
+                deps.get(cur).add(sub);
+            }
         }
     }
     return deps;

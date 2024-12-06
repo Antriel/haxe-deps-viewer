@@ -175,7 +175,6 @@ export default function createGraph(deps, config) {
         function add(node) {
             visited.add(node);
             total += graph.getNodeAttribute(node, 'directDegree');
-            console.assert(Number.isFinite(total));
             for (const neigh of (outbound ? graph.outNeighbors(node) : graph.inNeighbors(node))) {
                 if (!visited.has(neigh)) add(neigh);
             }

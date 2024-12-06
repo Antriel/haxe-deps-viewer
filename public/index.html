@@ -34,8 +34,59 @@
       text-decoration-color: red;
     }
 
+    #hello {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      height: 100%;
+      box-shadow: inset 0 0 100px 50px rgba(0, 0, 0, 0.5);
+      transition: box-shadow 0.3s ease;
+    }
+
+    .dragging {
+      box-shadow: inset 0 0 100px 50px rgba(0, 0, 0, 0.1) !important;
+    }
+    .github-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px; /* Space between icon and text */
+      padding: 12px 20px;
+      background-color: #24292e;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      font-size: 16px;
+      font-weight: bold;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background-color 0.3s ease;
+    }
+
+    .github-button:hover {
+      background-color: #0366d6;
+    }
+
+    .github-button svg {
+      width: 20px;
+      height: 20px;
+      fill: #ffffff; /* Matches the text color */
+    }
   </style>
-  <div id="container"></div>
+  <div id="container">
+    <div id="hello">
+      <h1>Hello, this is Haxe dependency viewer. Have fun.</h1>
+      <span>Drag/drop <b>`dependencies.dump` or `dependants.dump`</b> here.</span>
+      <span>(You can generate them by compiling with `-D dump-dependencies`.)</span>
+      <a href="https://github.com/Antriel/haxe-deps-viewer" target="_blank" class="github-button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-hidden="true">
+          <path
+            d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.387.6.113.82-.26.82-.577v-2.21c-3.338.726-4.043-1.61-4.043-1.61-.546-1.387-1.333-1.755-1.333-1.755-1.09-.744.084-.729.084-.729 1.205.084 1.84 1.237 1.84 1.237 1.07 1.835 2.807 1.305 3.492.998.107-.775.418-1.305.76-1.605-2.665-.304-5.467-1.332-5.467-5.93 0-1.31.47-2.382 1.236-3.22-.123-.303-.535-1.524.117-3.176 0 0 1.007-.323 3.3 1.23.957-.266 1.98-.399 3-.405 1.02.006 2.043.14 3 .405 2.29-1.553 3.295-1.23 3.295-1.23.655 1.652.243 2.873.12 3.176.77.838 1.235 1.91 1.235 3.22 0 4.61-2.807 5.623-5.48 5.92.43.37.814 1.1.814 2.22v3.293c0 .32.22.694.825.576C20.565 21.795 24 17.297 24 12 24 5.37 18.63 0 12 0z" />
+        </svg>
+        View on GitHub
+      </a>
+    </div>
+  </div>
   <div id="search">
     <input type="search" id="search-input" list="suggestions" placeholder="Filter/search..." />
     <datalist id="suggestions"></datalist>

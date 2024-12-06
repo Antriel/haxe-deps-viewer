@@ -36,7 +36,8 @@ gui.onFinishChange(() => {
 });
 
 const visual = gui.addFolder('Visualization').close();
-visual.add(config, 'visualDependencies', { dependencies: true, dependants: false }).name('point towards');
+const dir = visual.add(config, 'visualDependencies', { dependencies: true, dependants: false }).name('point towards');
+export function refresh() { dir.updateDisplay(); }
 visual.add(config, 'visualSize', {
     'immediate dependencies': 'dependencies',
     'total dependencies': 'dependenciesRec',
