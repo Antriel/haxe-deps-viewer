@@ -3,6 +3,8 @@ import GUI from 'lil-gui';
 /** @type{import('./createGraph.mjs').GraphConfig} */
 export const config = JSON.parse(localStorage?.getItem('haxeDepsCfg') ?? '{}');
 export let onConfigChanged = {};
+config.visualDependencies ??= true;
+config.visualSize ??= 'dependenciesRec';
 config.hideStd ??= true;
 config.hideImport ??= true;
 config.hideCustom ??= [];
@@ -20,6 +22,17 @@ gui.onFinishChange(() => {
     onConfigChanged.run?.();
     // TODO also save state of the GUI?
 });
+
+const visual = gui.addFolder('Visualization').close();
+visual.add(config, 'visualDependencies', { dependencies: true, dependants: false }).name('point towards');
+visual.add(config, 'visualSize', {
+    'immediate dependencies': 'dependencies',
+    'total dependencies': 'dependenciesRec',
+    'immediate dependants': 'dependants',
+    'total dependants': 'dependantsRec',
+}).name('node size based on');
+
+// const layout = visual.addFolder('Layout').close();
 
 const exclusions = gui.addFolder('Exclusions').close();
 exclusions.add(config, 'hideStd').name('hide Haxe Std library');

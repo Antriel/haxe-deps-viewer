@@ -24,6 +24,8 @@ const labelHaxelib = [
 
 /**
  * @typedef {Object} GraphConfig
+ * @property {boolean} visualDependencies
+ * @property {'dependencies'|'dependenciesRec'|'dependants'|'dependantsRec'} visualSize
  * @property {boolean} hideStd
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
@@ -115,11 +117,9 @@ export default function createGraph(deps, config) {
         if (shouldRemove(root)) deps.delete(root);
         else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
     }
-    for (const [dep, ch] of deps) dep.size = ch.size;
 
     const graph = new Graph({ /* multi: true */ });
     const posGraph = new Graph({ multi: true });
-    const maxSize = [...deps.keys()].reduce((max, dep) => Math.max(max, dep.size), 0);
 
     function add(node) {
         if (!graph.hasNode(node.path)) {
@@ -127,7 +127,7 @@ export default function createGraph(deps, config) {
             if (!nodeAtts.has(node.path)) nodeAtts.set(node.path, {});
             const atts = nodeAtts.get(node.path);
             atts.label = node.label;
-            atts.size = 1 + (node.size / maxSize) * 15;
+            atts.degree = -1;
             graph.addNode(node.path, atts);
             posGraph.addNode(node.path, atts);
         }
@@ -136,23 +136,53 @@ export default function createGraph(deps, config) {
         add(key);
         for (const child of children) {
             add(child);
-            const edgeKey = nodeIds.get(key.path) + '_' + nodeIds.get(child.path);
+            const from = config.visualDependencies ? key : child;
+            const to = config.visualDependencies ? child : key;
+            const edgeKey = nodeIds.get(from.path) + '_' + nodeIds.get(to.path);
             if (!edgeAtts.has(edgeKey)) edgeAtts.set(edgeKey, { type: 'arrow' });
             const atts = edgeAtts.get(edgeKey)
-            atts.weight = (deps.get(child)?.size ?? 0) + 1;
-            graph.addDirectedEdgeWithKey(edgeKey, key.path, child.path, atts);
-            posGraph.addDirectedEdgeWithKey(edgeKey, key.path, child.path, atts);
+            atts.weight = (deps.get(to)?.size ?? 0) + 1;
+            graph.addDirectedEdgeWithKey(edgeKey, from.path, to.path, atts);
+            posGraph.addDirectedEdgeWithKey(edgeKey, from.path, to.path, atts);
         }
     }
 
-    for (const node of deps.keys()) {
-        const atts = graph.getNodeAttributes(node.path);
-        if (typeof atts.y === 'undefined') {
-            atts.y = node.size * 60;
+    const outbound = !(config.visualSize.startsWith('dependencies') != config.visualDependencies);
+    for (const { node, attributes } of graph.nodeEntries())
+        attributes.directDegree = outbound ? graph.outDegree(node) : graph.inDegree(node);
+    const recursiveDegree = config.visualSize.endsWith('Rec');
+    function getDegree(node) {
+        const atts = graph.getNodeAttributes(node);
+        if (!recursiveDegree) return atts.directDegree;
+        if (atts.degree >= 0) return atts.degree;
+        const visited = new Set();
+        let total = 0;
+        function add(node) {
+            visited.add(node);
+            total += graph.getNodeAttribute(node, 'directDegree');
+            console.assert(Number.isFinite(total));
+            for (const neigh of (outbound ? graph.outNeighbors(node) : graph.inNeighbors(node))) {
+                if (!visited.has(neigh)) add(neigh);
+            }
+        }
+        add(node);
+        return total;
+    }
+    for (const { node, attributes } of graph.nodeEntries()) attributes.degree = getDegree(node);
+    const maxDegree = graph.reduceNodes((max, _, atts) => Math.max(max, atts.degree), 0);
+    const minRadius = 1;
+    const maxRadius = 15;
+    for (const { attributes } of graph.nodeEntries())
+        attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
+
+    for (const { attributes } of graph.nodeEntries()) {
+        attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
+        if (typeof attributes.y === 'undefined') {
+            attributes.y = attributes.size * 60;
             // TODO x based on packs?
-            atts.x = 10;
-            atts.prevX = atts.x
-            atts.prevY = atts.y;
+            attributes.x = 10;
+            attributes.prevX = attributes.x
+            attributes.prevY = attributes.y;
         }
     }
 

@@ -37,5 +37,4 @@ export function parse(txt) {
  * @typedef {Object} DepData
  * @property {string} path
  * @property {string} label
- * @property {number} size
  */
