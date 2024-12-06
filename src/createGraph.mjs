@@ -26,6 +26,11 @@ const labelHaxelib = [
  * @typedef {Object} GraphConfig
  * @property {boolean} visualDependencies
  * @property {'dependencies'|'dependenciesRec'|'dependants'|'dependantsRec'} visualSize
+ * @property {number} visualSizeMin
+ * @property {number} visualSizeMax
+ * @property {boolean} visualAllPaths
+ * @property {boolean} visualCycles
+ * @property {number} visualLabelsDensity
  * @property {boolean} hideStd
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
@@ -170,8 +175,8 @@ export default function createGraph(deps, config) {
     }
     for (const { node, attributes } of graph.nodeEntries()) attributes.degree = getDegree(node);
     const maxDegree = graph.reduceNodes((max, _, atts) => Math.max(max, atts.degree), 0);
-    const minRadius = 1;
-    const maxRadius = 15;
+    const minRadius = Math.min(config.visualSizeMin, config.visualSizeMax);
+    const maxRadius = Math.max(config.visualSizeMin, config.visualSizeMax);
     for (const { attributes } of graph.nodeEntries())
         attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
 

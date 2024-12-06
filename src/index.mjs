@@ -19,6 +19,7 @@ let graph = createGraph(copyDeps(), config);
 onConfigChanged.run = () => {
     graph = createGraph(copyDeps(), config);
     sigma.setGraph(graph);
+    sigma.setSetting('labelDensity', config.visualLabelsDensity);
 };
 
 searchSuggestions.innerHTML = graph
@@ -26,7 +27,9 @@ searchSuggestions.innerHTML = graph
     .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
     .join("\n");
 
-const sigma = new Sigma(graph, document.getElementById("container"));
+const sigma = new Sigma(graph, document.getElementById("container"), {
+    labelDensity: config.visualLabelsDensity,
+});
 const state = {};
 function setHoveredNode(node) {
     if (node) {
@@ -78,9 +81,10 @@ sigma.setSetting("edgeReducer", (edge, data) => {
     if (state.highlightEdges?.includes(edge)) {
         res.color = '#3333cc';
         res.size = 2.5;
-    } else if (state.cycleEdges?.has(edge)) {
+    } else if (config.visualCycles && state.cycleEdges?.has(edge)) {
         res.color = '#cc3333';
-    } else if ((!state.hoveredNode || state.hoveredNode === state.selectedNode) && state.distances && state.distances[src] != undefined && target != state.selectedNode) {
+    } else if (config.visualAllPaths && (!state.hoveredNode || state.hoveredNode === state.selectedNode)
+        && state.distances && state.distances[src] != undefined && target != state.selectedNode) {
         const strength = 255 / (2 ** (state.distances[src]));
         let c = Math.floor(255 - strength).toString(16);
         if (c.length == 1) c = '0' + c;

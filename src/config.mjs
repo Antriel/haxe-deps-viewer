@@ -5,6 +5,11 @@ export const config = JSON.parse(localStorage?.getItem('haxeDepsCfg') ?? '{}');
 export let onConfigChanged = {};
 config.visualDependencies ??= true;
 config.visualSize ??= 'dependenciesRec';
+config.visualSizeMin ??= 1;
+config.visualSizeMax ??= 15;
+config.visualAllPaths ??= true;
+config.visualCycles ??= true;
+config.visualLabelsDensity ??= 1;
 config.hideStd ??= true;
 config.hideImport ??= true;
 config.hideCustom ??= [];
@@ -15,6 +20,7 @@ config.smartLabelsPrefix ??= true;
 config.smartLabelsCustom ??= [];
 
 const gui = new GUI({ title: 'Config' });
+gui.close();
 gui.domElement.style.left = '0px';
 
 gui.onFinishChange(() => {
@@ -31,6 +37,11 @@ visual.add(config, 'visualSize', {
     'immediate dependants': 'dependants',
     'total dependants': 'dependantsRec',
 }).name('node size based on');
+visual.add(config, 'visualSizeMin', 1, 25).name('min radius');
+visual.add(config, 'visualSizeMax', 1, 25).name('max radius');
+visual.add(config, 'visualAllPaths').name('show all possible paths of active node');
+visual.add(config, 'visualCycles').name('show cyclic paths in red');
+visual.add(config, 'visualLabelsDensity', 0.1, 3).name('labels density');
 
 // const layout = visual.addFolder('Layout').close();
 
