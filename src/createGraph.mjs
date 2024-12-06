@@ -31,6 +31,11 @@ const labelHaxelib = [
  * @property {boolean} visualAllPaths
  * @property {boolean} visualCycles
  * @property {number} visualLabelsDensity
+ * @property {boolean} layoutForces
+ * @property {boolean} layoutForcesRelative
+ * @property {number} layoutPackageForces
+ * @property {number} layoutForcePower
+ * @property {number} layoutForceSlowdown
  * @property {boolean} hideStd
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
@@ -137,6 +142,8 @@ export default function createGraph(deps, config) {
             posGraph.addNode(node.path, atts);
         }
     }
+    let maxDeps = 0;
+    for (const set of deps.values()) maxDeps = Math.max(set.size, maxDeps);
     for (const [key, children] of deps) {
         add(key);
         for (const child of children) {
@@ -146,7 +153,10 @@ export default function createGraph(deps, config) {
             const edgeKey = nodeIds.get(from.path) + '_' + nodeIds.get(to.path);
             if (!edgeAtts.has(edgeKey)) edgeAtts.set(edgeKey, { type: 'arrow' });
             const atts = edgeAtts.get(edgeKey)
-            atts.weight = (deps.get(to)?.size ?? 0) + 1;
+            atts.weight = config.layoutForces ? 100 : 0;
+            if (config.layoutForcesRelative)
+                atts.weight *= ((deps.get(to)?.size ?? 0) + 1) / (maxDeps + 1);
+
             graph.addDirectedEdgeWithKey(edgeKey, from.path, to.path, atts);
             posGraph.addDirectedEdgeWithKey(edgeKey, from.path, to.path, atts);
         }
@@ -238,11 +248,11 @@ export default function createGraph(deps, config) {
     }
 
     const edges = [];
-    for (const arr of packToNodes.values()) {
+    if (config.layoutPackageForces > 0) for (const arr of packToNodes.values()) {
+        const weight = config.layoutPackageForces;
         for (let i = 0; i < arr.length - 1; i++) {
             for (let j = i; j < arr.length - 1; j++) {
-                edges.push(posGraph.addUndirectedEdge(arr[i].path, arr[j + 1].path, { weight: 1.5 }));
-                // TODO ^ configurable?
+                edges.push(posGraph.addUndirectedEdge(arr[i].path, arr[j + 1].path, { weight }));
             }
         }
     }
@@ -251,8 +261,8 @@ export default function createGraph(deps, config) {
     // settings.adjustSizes = true;
     // settings.barnesHutOptimize = true;
     settings.outboundAttractionDistribution = true;
-    settings.edgeWeightInfluence = 0.5;
-    settings.slowDown = 20;
+    settings.edgeWeightInfluence = config.layoutForcePower;
+    settings.slowDown = config.layoutForceSlowdown;
     settings.gravity = 0.15;
     // forceAtlas2.assign(graph, { settings, iterations: 1000 });
     if (layout) {

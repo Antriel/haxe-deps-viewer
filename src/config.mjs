@@ -10,6 +10,12 @@ config.visualSizeMax ??= 15;
 config.visualAllPaths ??= true;
 config.visualCycles ??= true;
 config.visualLabelsDensity ??= 1;
+config.layoutForces ??= true;
+config.layoutForcesRelative ??= true;
+config.layoutPackageForces ??= 1;
+config.layoutForcePower ??= 0.5;
+config.layoutForceSlowdown ??= 20;
+
 config.hideStd ??= true;
 config.hideImport ??= true;
 config.hideCustom ??= [];
@@ -37,13 +43,21 @@ visual.add(config, 'visualSize', {
     'immediate dependants': 'dependants',
     'total dependants': 'dependantsRec',
 }).name('node size based on');
-visual.add(config, 'visualSizeMin', 1, 25).name('min radius');
-visual.add(config, 'visualSizeMax', 1, 25).name('max radius');
+visual.add(config, 'visualSizeMin', 1, 25, 0.001).name('min radius');
+visual.add(config, 'visualSizeMax', 1, 25, 0.001).name('max radius');
 visual.add(config, 'visualAllPaths').name('show all possible paths of active node');
 visual.add(config, 'visualCycles').name('show cyclic paths in red');
 visual.add(config, 'visualLabelsDensity', 0.1, 3).name('labels density');
 
-// const layout = visual.addFolder('Layout').close();
+const layout = visual.addFolder('Layout/Simulation (Quite Fiddly...)').close();
+layout.add(config, 'layoutForces').name('apply forces based on links');
+layout.add(config, 'layoutForcesRelative').name('forces relative to link count');
+layout.add(config, 'layoutPackageForces', 0, 3, 0.001).name('same package force');
+layout.add(config, 'layoutForcePower', 0, 3, 0.001).name('force power');
+layout.add(config, 'layoutForceSlowdown', 1, 100, 0.001).name('slowdown');
+// TODO stop sim button.
+// TODO initial layout config options.
+// layout.open().parent.open().parent.open();
 
 const exclusions = gui.addFolder('Exclusions').close();
 exclusions.add(config, 'hideStd').name('hide Haxe Std library');
