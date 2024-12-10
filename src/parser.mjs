@@ -14,9 +14,14 @@ export function parse(txt, isDependants = false) {
      */
     function getData(path) {
         path = path.replaceAll('\\', '/'); // Normalize...
+        let isMacro = false;
+        if (path.startsWith('[macro] ')) {
+            isMacro = true;
+            path = path.substring('[macro] '.length);
+        }
         let obj = objMap.get(path);
         if (obj) return obj;
-        obj = { path };
+        obj = { path, isMacro };
         objMap.set(path, obj);
         deps.set(obj, new Set());
         return obj;
@@ -40,5 +45,6 @@ export function parse(txt, isDependants = false) {
 /**
  * @typedef {Object} DepData
  * @property {string} path
+ * @property {boolean} isMacro
  * @property {string} label
  */

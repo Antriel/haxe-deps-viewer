@@ -23,6 +23,7 @@ config.smartLabelsStd ??= true;
 config.smartLabelsSrc ??= true;
 config.smartLabelsHaxelib ??= true;
 config.smartLabelsPrefix ??= true;
+config.smartLabelsShowMacro ??= true;
 config.smartLabelsCustom ??= [];
 
 const gui = new GUI({ title: 'Config' });
@@ -100,6 +101,7 @@ labels.add(config, 'smartLabelsStd').name('extract Haxe Std lib');
 labels.add(config, 'smartLabelsSrc').name('extract after src/');
 labels.add(config, 'smartLabelsHaxelib').name('try extract haxelib paths')
 labels.add(config, 'smartLabelsPrefix').name('remove common prefix');
+labels.add(config, 'smartLabelsShowMacro').name('mark macros in labels');
 addCustomStringValues(labels, 'Custom Smart Labels (Use Capture Group)', config.smartLabelsCustom);
 
 // TODO load state of the GUI?

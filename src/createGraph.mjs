@@ -10,11 +10,9 @@ const nodeIds = new Map();
 const nodeAtts = new Map();
 const edgeAtts = new Map();
 
-const haxeReg = /.+haxe\/.+\/std\/(.+).hx$/;
 const importReg = /.+\/import.hx$/;
 
-
-const labelStd = /.+haxe\/.+\/std\/(.+).hx$/;
+const labelStd = /.+haxe[0-9a-f_]*(?:\/.+\/)?std\/(.+).hx$/;
 const labelSrc = /.+src\/(.+).hx$/;
 const labelHaxelib = [
     /.+haxe_libraries\/.+\/.+\/haxelib\/(.+).hx$/,
@@ -43,6 +41,7 @@ const labelHaxelib = [
  * @property {boolean} smartLabelsSrc
  * @property {boolean} smartLabelsHaxelib
  * @property {boolean} smartLabelsPrefix
+ * @property {boolean} smartLabelsShowMacro
  * @property {{reg:string,enabled:boolean}[]} smartLabelsCustom
  * 
  */
@@ -61,6 +60,7 @@ export default function createGraph(deps, config) {
     if (config.smartLabelsSrc) activeLabelRegs.push(labelSrc);
     if (config.smartLabelsHaxelib) activeLabelRegs.push(...labelHaxelib);
 
+    for (const d of deps.keys()) d.label = null; // Reset label in case config changed.
     function parseLabel(path) {
         for (const r of activeLabelRegs) if (r) {
             const matches = r.exec(path);
@@ -117,7 +117,7 @@ export default function createGraph(deps, config) {
 
     function shouldRemove(/** @type{import("./parser.mjs").DepData} */ data) {
         let rem = false;
-        if (config.hideStd) rem = rem || haxeReg.test(data.path);
+        if (config.hideStd) rem = rem || labelStd.test(data.path);
         if (config.hideImport) rem = rem || importReg.test(data.path);
         rem = rem || customRemoves.some(r => r?.test(data.path));
 
@@ -137,6 +137,8 @@ export default function createGraph(deps, config) {
             if (!nodeAtts.has(node.path)) nodeAtts.set(node.path, {});
             const atts = nodeAtts.get(node.path);
             atts.label = node.label;
+            if (config.smartLabelsShowMacro && node.isMacro)
+                atts.label = '[macro] ' + atts.label;
             atts.degree = -1;
             graph.addNode(node.path, atts);
             posGraph.addNode(node.path, atts);
