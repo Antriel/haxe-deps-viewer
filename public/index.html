@@ -72,11 +72,14 @@
       height: 20px;
       fill: #ffffff; /* Matches the text color */
     }
+    .small {
+      font-size: smaller;
+    }
   </style>
   <div id="container">
     <div id="hello">
       <h1>Hello, this is Haxe dependency viewer. Have fun.</h1>
-      <span>Drag/drop <b>`dependencies.dump` or `dependants.dump`</b> here.</span>
+      <span>Drag/drop/paste <b>`dependencies.dump` or `dependants.dump`</b> here.</span>
       <span>(You can generate them by compiling with `-D dump-dependencies`.)</span>
       <a href="https://github.com/Antriel/haxe-deps-viewer" target="_blank" class="github-button">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-hidden="true">
@@ -85,6 +88,7 @@
         </svg>
         View on GitHub
       </a>
+      <span class="small">(Stars are appreciated, so I know people use this.)</span>
     </div>
   </div>
   <div id="search">
