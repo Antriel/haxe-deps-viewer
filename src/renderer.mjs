@@ -25,12 +25,12 @@ onConfigChanged.run = () => {
     graph = createGraph(copyDeps(), config);
     sigma.setGraph(graph);
     sigma.setSetting('labelDensity', config.visualLabelsDensity);
+    searchSuggestions.innerHTML = graph
+        .nodes()
+        .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
+        .join("\n");
 };
 
-searchSuggestions.innerHTML = graph
-    .nodes()
-    .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
-    .join("\n");
 
 const sigma = new Sigma(graph, document.getElementById("container"), {
     labelDensity: config.visualLabelsDensity,
