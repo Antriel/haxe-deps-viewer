@@ -12,7 +12,7 @@ const edgeAtts = new Map();
 
 const importReg = /.+\/import.hx$/;
 
-const labelStd = /.+haxe[0-9a-f_]*(?:\/.+\/)?std\/(.+).hx$/;
+const labelStd = /.+haxe[0-9a-f_]*(?:\/.+)?\/std\/(.+).hx$/;
 const labelSrc = /.+src\/(.+).hx$/;
 const labelHaxelib = [
     /.+haxe_libraries\/.+\/.+\/haxelib\/(.+).hx$/,
