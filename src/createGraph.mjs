@@ -75,7 +75,7 @@ export default function createGraph(deps, config) {
         if (dep.label) continue;
         if (prefix === null) prefix = dep.path;
         else while (!dep.path.startsWith(prefix)) {
-            const parts = prefix.split(/(?!\/)/g); // Split by, but keep `/`.
+            const parts = prefix.match(/[^\/]+\/?|\//g); // Split by, but keep `/`.
             parts.pop();
             prefix = parts.join('');
             if (prefix === "") break;
