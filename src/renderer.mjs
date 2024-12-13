@@ -166,3 +166,7 @@ function setSearchQuery(query) {
 searchInput.addEventListener("input", () => {
     setSearchQuery(searchInput.value || "");
 });
+searchInput.addEventListener('keyup', () => {
+    // Reapply the current value. This triggers even if it didn't change.
+    setSearchQuery(searchInput.value || "");
+});
