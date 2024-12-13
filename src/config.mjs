@@ -26,7 +26,7 @@ config.smartLabelsPrefix ??= true;
 config.smartLabelsShowMacro ??= true;
 config.smartLabelsCustom ??= [];
 
-const gui = new GUI({ title: 'Config' });
+const gui = new GUI({ title: 'Config/Data' });
 gui.close();
 gui.domElement.style.left = '0px';
 
@@ -35,6 +35,21 @@ gui.onFinishChange(() => {
     onConfigChanged.run?.();
     // TODO also save state of the GUI?
 });
+
+const data = gui.addFolder('Selected Node Dep Counts').close();
+export const dataVal = {
+    directDependencies: Number.NaN,
+    directDependants: Number.NaN,
+    totalDependencies: Number.NaN,
+    totalDependants: Number.NaN,
+};
+data.add(dataVal, 'directDependencies').name('direct dependencies').disable();
+data.add(dataVal, 'directDependants').name('direct dependants').disable();
+data.add(dataVal, 'totalDependencies').name('total dependencies').disable();
+data.add(dataVal, 'totalDependants').name('total dependants').disable();
+export function syncData() {
+    for (const c of data.controllersRecursive()) c.updateDisplay();
+}
 
 const visual = gui.addFolder('Visualization').close();
 const dir = visual.add(config, 'visualDependencies', { dependencies: true, dependants: false }).name('point towards');

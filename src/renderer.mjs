@@ -3,7 +3,7 @@ import { edgePathFromNodePath } from "graphology-shortest-path";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
 import createGraph from "./createGraph.mjs";
-import { config, onConfigChanged, refresh } from './config.mjs';
+import { config, dataVal, onConfigChanged, refresh, syncData } from './config.mjs';
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
 
@@ -115,7 +115,7 @@ sigma.setSetting("edgeReducer", (edge, data) => {
 sigma.on('enterNode', ({ node }) => setHoveredNode(node));
 sigma.on('leaveNode', () => setHoveredNode(undefined));
 sigma.on('clickNode', ({ node }) => {
-    state.selectedNode = node;
+    setSelectedNode(node);
     state.selectedNeighbors = new Set(graph.outNeighbors(node));
     state.distances = singleSourceLength(graph, node);
     state.maxDist = Object.values(state.distances).reduce((dist, length) => Math.max(dist, length), 0);
@@ -128,12 +128,37 @@ sigma.on('clickNode', ({ node }) => {
     sigma.refresh({ skipIndexation: true });
 });
 sigma.on('clickStage', () => {
-    state.selectedNode = undefined;
+    setSelectedNode(undefined);
     state.selectedNeighbors = undefined;
     state.distances = undefined;
     state.cycleEdges = undefined;
     sigma.refresh({ skipIndexation: true });
 });
+
+function setSelectedNode(node) {
+    state.selectedNode = node;
+    if (node) {
+        let inCount = 0;
+        let outCount = 0;
+        let inCountTotal = 0;
+        let outCountTotal = 0;
+        for (const other of graph.nodes()) if (other != node) {
+            const outPath = bidirectional(graph, node, other);
+            const inPath = bidirectional(graph, other, node);
+            if (outPath) ++outCountTotal;
+            if (inPath) ++inCountTotal;
+            if (outPath?.length == 2) ++outCount;
+            if (inPath?.length == 2) ++inCount;
+        }
+        dataVal.directDependencies = config.visualDependencies ? outCount : inCount;
+        dataVal.directDependants = config.visualDependencies ? inCount : outCount;
+        dataVal.totalDependencies = config.visualDependencies ? outCountTotal : inCountTotal;
+        dataVal.totalDependants = config.visualDependencies ? inCountTotal : outCountTotal;
+    } else {
+        dataVal.directDependencies = dataVal.directDependants = dataVal.totalDependencies = dataVal.totalDependants = Number.NaN;
+    }
+    syncData();
+}
 
 function setSearchQuery(query) {
     state.searchQuery = query;
@@ -144,7 +169,7 @@ function setSearchQuery(query) {
         const suggestions = nodes.filter(({ label }) => label.toLowerCase().includes(lcQuery));
 
         if (suggestions.length === 1 && suggestions[0].label === query) {
-            state.selectedNode = suggestions[0].id;
+            setSelectedNode(suggestions[0].id);
             state.suggestions = undefined;
 
             const nodePosition = sigma.getNodeDisplayData(state.selectedNode);
@@ -152,11 +177,11 @@ function setSearchQuery(query) {
                 duration: 500,
             });
         } else {
-            state.selectedNode = undefined;
+            setSelectedNode(undefined);
             state.suggestions = new Set(suggestions.map(({ id }) => id));
         }
     } else {
-        state.selectedNode = undefined;
+        setSelectedNode(undefined);
         state.suggestions = undefined;
     }
 
