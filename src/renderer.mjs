@@ -9,7 +9,9 @@ const searchSuggestions = document.getElementById("suggestions");
 
 let deps = new Map();
 export function showNew(txt, isDependants) {
-    deps = parse(txt, isDependants);
+    let newDeps = parse(txt, isDependants);
+    if (newDeps.size < 2) return; // In case of accidental paste that included `.hx`.
+    deps = newDeps;
     config.visualDependencies = !isDependants;
     refresh();
     onConfigChanged.run();
@@ -23,6 +25,8 @@ function copyDeps() {
 let graph = createGraph(copyDeps(), config);
 onConfigChanged.run = () => {
     graph = createGraph(copyDeps(), config);
+    // Clear, otherwise Sigma can crash if the previously highlighted node does not exist.
+    sigma.highlightedNodes.clear();
     sigma.setGraph(graph);
     sigma.setSetting('labelDensity', config.visualLabelsDensity);
     searchSuggestions.innerHTML = graph
