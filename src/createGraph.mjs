@@ -1,4 +1,5 @@
 import Graph from "graphology";
+import { circular } from 'graphology-layout';
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import randomColor from "randomcolor";
@@ -191,12 +192,14 @@ export default function createGraph(deps, config) {
     for (const { attributes } of graph.nodeEntries())
         attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
 
-    for (const { attributes } of graph.nodeEntries()) {
+    const pos = circular(graph);
+    for (const { attributes, node } of graph.nodeEntries()) {
         attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
         if (typeof attributes.y === 'undefined') {
-            attributes.y = attributes.size * 60;
             // TODO x based on packs?
-            attributes.x = 10;
+            const { x, y } = pos[node];
+            attributes.x = x;
+            attributes.y = y;
             attributes.prevX = attributes.x
             attributes.prevY = attributes.y;
         }
@@ -252,7 +255,8 @@ export default function createGraph(deps, config) {
     if (config.layoutPackageForces > 0) for (const arr of packToNodes.values()) {
         const weight = config.layoutPackageForces;
         for (let i = 0; i < arr.length - 1; i++) {
-            for (let j = i; j < arr.length - 1; j++) {
+            // Limit to max 150 per node, otherwise we can crash on big datasets.
+            for (let j = i; j < Math.min(arr.length - 1, 150 + i); j++) {
                 edges.push(posGraph.addUndirectedEdge(arr[i].path, arr[j + 1].path, { weight }));
             }
         }
