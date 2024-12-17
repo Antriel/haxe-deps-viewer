@@ -1,12 +1,12 @@
 {
   "name": "haxe-deps-viewer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Haxe dependencies viewer.",
   "author": "Peter Achberger",
   "license": "MIT",
   "scripts": {
-    "dev": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js --servedir=public --serve=5000",
-    "build": "npx esbuild src/index.mjs --bundle --outfile=public/bundle.js"
+    "dev": "node ./esbuild.mjs",
+    "build": "node ./esbuild.mjs build"
   },
   "dependencies": {
     "esbuild": "^0.24.0",

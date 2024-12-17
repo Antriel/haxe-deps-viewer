@@ -1,4 +1,8 @@
 import { showNew } from "./renderer.mjs";
+import { buildDate, gitHash, version } from 'BUILD_METADATA';
+
+const v = document.getElementById('version');
+if (v) v.innerText = `v${version} built on ${buildDate} #${gitHash}`;
 
 function handleText(text, filename) {
     if (text?.includes('.hx')) {

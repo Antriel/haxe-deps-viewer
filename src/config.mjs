@@ -128,6 +128,6 @@ layout.add(config, 'layoutForcesRelative').name('forces relative to link count')
 layout.add(config, 'layoutPackageForces', 0, 3, 0.001).name('same package force');
 layout.add(config, 'layoutForcePower', 0, 3, 0.001).name('force power');
 layout.add(config, 'layoutForceSlowdown', 1, 100, 0.001).name('slowdown');
-layout.open().parent.open();
+// layout.open().parent.open();
 
 // TODO load state of the GUI?
