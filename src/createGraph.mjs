@@ -1,5 +1,6 @@
 import Graph from "graphology";
-import { circular } from 'graphology-layout';
+import circular from 'graphology-layout/circular';
+import circlepack from 'graphology-layout/circlepack';
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import randomColor from "randomcolor";
@@ -7,6 +8,7 @@ import randomColor from "randomcolor";
 let layout;
 let abort;
 let idCounter = 0;
+let lastLayoutInit;
 const nodeIds = new Map();
 const nodeAtts = new Map();
 const edgeAtts = new Map();
@@ -30,6 +32,8 @@ const labelHaxelib = [
  * @property {boolean} visualAllPaths
  * @property {boolean} visualCycles
  * @property {number} visualLabelsDensity
+ * @property {boolean} layoutEnable
+ * @property {'bubble'|'circle'|'topdown'} layoutInit
  * @property {boolean} layoutForces
  * @property {boolean} layoutForcesRelative
  * @property {number} layoutPackageForces
@@ -131,6 +135,7 @@ export default function createGraph(deps, config) {
 
     const graph = new Graph({ /* multi: true */ });
     const posGraph = new Graph({ multi: true });
+    graph.setAttribute('posGraph', posGraph);
 
     function add(node) {
         if (!graph.hasNode(node.path)) {
@@ -191,25 +196,20 @@ export default function createGraph(deps, config) {
     const maxRadius = Math.max(config.visualSizeMin, config.visualSizeMax);
     for (const { attributes } of graph.nodeEntries())
         attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
-
-    const pos = circular(graph);
-    for (const { attributes, node } of graph.nodeEntries()) {
-        attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
-        if (typeof attributes.y === 'undefined') {
-            // TODO x based on packs?
-            const { x, y } = pos[node];
-            attributes.x = x;
-            attributes.y = y;
-            attributes.prevX = attributes.x
-            attributes.prevY = attributes.y;
-        }
-    }
+    graph.setAttribute('maxDegree', maxDegree);
+    graph.setAttribute('minRadius', minRadius);
+    graph.setAttribute('maxRadius', maxRadius);
 
     // Add edges between types within the same pack, for better position grouping.
     const packToNodes = new Map();
+    let maxPackCount = 0;
     for (const node of deps.keys()) {
         const pack = node.label.split('/');
         pack.pop();
+        maxPackCount = Math.max(maxPackCount, pack.length);
+        const atts = graph.getNodeAttributes(node.path);
+        for (let i = 0; i < pack.length; i++) atts['pack' + i] = pack[i];
+        node.packs = pack.slice();
         while (pack.length) {
             const packStr = pack.join('/');
             if (!packToNodes.has(packStr)) packToNodes.set(packStr, []);
@@ -217,6 +217,7 @@ export default function createGraph(deps, config) {
             pack.pop();
         }
     }
+    graph.setAttribute('maxPackCount', maxPackCount);
     function setColors(color) {
         for (const node of color.nodes) {
             if (graph.hasNode(node.path))
@@ -261,6 +262,31 @@ export default function createGraph(deps, config) {
             }
         }
     }
+    // // Drop pack edges.
+    // for (const edge of edges) graph.dropEdge(edge);
+
+    setGraphPositions(graph, config, lastLayoutInit != config.layoutInit);
+    return graph;
+}
+
+export function setGraphPositions(graph, config, reset = false) {
+    lastLayoutInit = config.layoutInit;
+    const { maxDegree, minRadius, maxRadius, maxPackCount, posGraph } = graph.getAttributes();
+    let pos;
+    if (config.layoutInit === 'bubble') pos = circlepack(graph, {
+        hierarchyAttributes: new Array(maxPackCount).fill(null).map((_, i) => 'pack' + i),
+    });
+    else if (config.layoutInit === 'circle') pos = circular(graph);
+    for (const { attributes, node } of graph.nodeEntries()) {
+        attributes.size = minRadius + (attributes.degree / maxDegree) * (maxRadius - minRadius);
+        if (reset || (typeof attributes.y === 'undefined')) {
+            const { x, y } = pos?.[node] ?? { x: 10, y: attributes.size * 60 };
+            attributes.x = x;
+            attributes.y = y;
+            attributes.prevX = attributes.x
+            attributes.prevY = attributes.y;
+        }
+    }
 
     const settings = forceAtlas2.inferSettings(posGraph);
     // settings.adjustSizes = true;
@@ -289,11 +315,5 @@ export default function createGraph(deps, config) {
         if (isIdle) layout.stop();
     }, { signal: abort.signal });
 
-    layout.start();
-    // TODO also add a button toggle for starting stopping the thing.
-
-    // // Drop pack edges.
-    // for (const edge of edges) graph.dropEdge(edge);
-
-    return graph;
+    if (config.layoutEnable) layout.start();
 }

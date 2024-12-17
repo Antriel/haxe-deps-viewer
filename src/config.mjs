@@ -4,12 +4,14 @@ import GUI from 'lil-gui';
 export const config = JSON.parse(localStorage?.getItem('haxeDepsCfg') ?? '{}');
 export let onConfigChanged = {};
 config.visualDependencies ??= true;
-config.visualSize ??= 'dependenciesRec';
-config.visualSizeMin ??= 1;
+config.visualSize ??= 'dependencies';
+config.visualSizeMin ??= 3;
 config.visualSizeMax ??= 15;
 config.visualAllPaths ??= true;
 config.visualCycles ??= true;
 config.visualLabelsDensity ??= 1;
+config.layoutEnable ??= true;
+config.layoutInit ??= 'bubble';
 config.layoutForces ??= true;
 config.layoutForcesRelative ??= true;
 config.layoutPackageForces ??= 1;
@@ -66,16 +68,6 @@ visual.add(config, 'visualAllPaths').name('show all possible paths of active nod
 visual.add(config, 'visualCycles').name('show cyclic paths in red');
 visual.add(config, 'visualLabelsDensity', 0.1, 3).name('labels density');
 
-const layout = visual.addFolder('Layout/Simulation (Quite Fiddly...)').close();
-layout.add(config, 'layoutForces').name('apply forces based on links');
-layout.add(config, 'layoutForcesRelative').name('forces relative to link count');
-layout.add(config, 'layoutPackageForces', 0, 3, 0.001).name('same package force');
-layout.add(config, 'layoutForcePower', 0, 3, 0.001).name('force power');
-layout.add(config, 'layoutForceSlowdown', 1, 100, 0.001).name('slowdown');
-// TODO stop sim button.
-// TODO initial layout config options.
-// layout.open().parent.open().parent.open();
-
 const exclusions = gui.addFolder('Exclusions').close();
 exclusions.add(config, 'hideStd').name('hide Haxe Std library');
 exclusions.add(config, 'hideImport').name('hide import.hx');
@@ -118,5 +110,24 @@ labels.add(config, 'smartLabelsHaxelib').name('try extract haxelib paths')
 labels.add(config, 'smartLabelsPrefix').name('remove common prefix');
 labels.add(config, 'smartLabelsShowMacro').name('mark macros in labels');
 addCustomStringValues(labels, 'Custom Smart Labels (Use Capture Group)', config.smartLabelsCustom);
+
+const layout = gui.addFolder('Layout/Simulation (Quite Fiddly...)').close();
+layout.add(config, 'layoutEnable').name('enable simulation');
+layout.add(config, 'layoutInit', {
+    'packages bubble chart': 'bubble',
+    'circular chart': 'circle',
+    'top-down': 'topdown',
+}).name('initial position algorithm');
+layout.add({
+    reset: () => {
+        onConfigChanged.reset?.();
+    }
+}, 'reset').name('reset initial positions');
+layout.add(config, 'layoutForces').name('apply forces based on links');
+layout.add(config, 'layoutForcesRelative').name('forces relative to link count');
+layout.add(config, 'layoutPackageForces', 0, 3, 0.001).name('same package force');
+layout.add(config, 'layoutForcePower', 0, 3, 0.001).name('force power');
+layout.add(config, 'layoutForceSlowdown', 1, 100, 0.001).name('slowdown');
+layout.open().parent.open();
 
 // TODO load state of the GUI?

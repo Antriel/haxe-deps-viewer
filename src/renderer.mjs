@@ -2,7 +2,7 @@ import { bidirectional, singleSourceLength } from 'graphology-shortest-path/unwe
 import { edgePathFromNodePath } from "graphology-shortest-path";
 import Sigma from "sigma";
 import { parse } from "./parser.mjs";
-import createGraph from "./createGraph.mjs";
+import createGraph, { setGraphPositions } from "./createGraph.mjs";
 import { config, dataVal, onConfigChanged, refresh, syncData } from './config.mjs';
 const searchInput = document.getElementById("search-input");
 const searchSuggestions = document.getElementById("suggestions");
@@ -34,6 +34,10 @@ onConfigChanged.run = () => {
         .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
         .join("\n");
 };
+onConfigChanged.reset = () => {
+    setGraphPositions(graph, config, true);
+    sigma.refresh({ skipIndexation: true });
+}
 
 
 const sigma = new Sigma(graph, document.getElementById("container"), {
