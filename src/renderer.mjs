@@ -33,6 +33,7 @@ onConfigChanged.run = () => {
         .nodes()
         .map((node) => `<option value="${graph.getNodeAttribute(node, "label")}"></option>`)
         .join("\n");
+    setSelectedNode(state.selectedNode && graph.hasNode(state.selectedNode) ? state.selectedNode : undefined);
 };
 onConfigChanged.reset = () => {
     setGraphPositions(graph, config, true);
