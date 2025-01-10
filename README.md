@@ -1,6 +1,9 @@
 # Haxe Dependencies Viewer
 
 Use this tool to visualize your [Haxe](https://haxe.org/) dependencies.
+
+![image](https://github.com/user-attachments/assets/7037c9a5-96ff-4af7-b2df-93f0cad5aa39)
+
 - Compile with `-D dump-dependencies`
 - Copy/drag the `dump/dependencies.dump` to the web page.
 - You can also drag `dependants.dump`, it just switches arrow directions. You can also switch that via UI at any time.
