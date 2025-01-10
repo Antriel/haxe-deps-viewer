@@ -121,28 +121,26 @@ sigma.on('enterNode', ({ node }) => setHoveredNode(node));
 sigma.on('leaveNode', () => setHoveredNode(undefined));
 sigma.on('clickNode', ({ node }) => {
     setSelectedNode(node);
-    state.selectedNeighbors = new Set(graph.outNeighbors(node));
-    state.distances = singleSourceLength(graph, node);
-    state.maxDist = Object.values(state.distances).reduce((dist, length) => Math.max(dist, length), 0);
-    state.cycleEdges = new Set();
-    for (const neigh of state.selectedNeighbors.values()) {
-        const path = bidirectional(graph, neigh, node);
-        if (path) edgePathFromNodePath(graph, [node, ...path])
-            .forEach(state.cycleEdges.add, state.cycleEdges);
-    }
-    sigma.refresh({ skipIndexation: true });
 });
 sigma.on('clickStage', () => {
-    setSelectedNode(undefined);
     state.selectedNeighbors = undefined;
     state.distances = undefined;
     state.cycleEdges = undefined;
-    sigma.refresh({ skipIndexation: true });
+    setSelectedNode(undefined);
 });
 
 function setSelectedNode(node) {
     state.selectedNode = node;
     if (node) {
+        state.selectedNeighbors = new Set(graph.outNeighbors(node));
+        state.distances = singleSourceLength(graph, node);
+        state.maxDist = Object.values(state.distances).reduce((dist, length) => Math.max(dist, length), 0);
+        state.cycleEdges = new Set();
+        for (const neigh of state.selectedNeighbors.values()) {
+            const path = bidirectional(graph, neigh, node);
+            if (path) edgePathFromNodePath(graph, [node, ...path])
+                .forEach(state.cycleEdges.add, state.cycleEdges);
+        }
         let inCount = 0;
         let outCount = 0;
         let inCountTotal = 0;
@@ -162,6 +160,7 @@ function setSelectedNode(node) {
     } else {
         dataVal.directDependencies = dataVal.directDependants = dataVal.totalDependencies = dataVal.totalDependants = Number.NaN;
     }
+    sigma.refresh({ skipIndexation: true });
     syncData();
 }
 
@@ -174,23 +173,21 @@ function setSearchQuery(query) {
         const suggestions = nodes.filter(({ label }) => label.toLowerCase().includes(lcQuery));
 
         if (suggestions.length === 1 && suggestions[0].label === query) {
-            setSelectedNode(suggestions[0].id);
             state.suggestions = undefined;
+            setSelectedNode(suggestions[0].id);
 
             const nodePosition = sigma.getNodeDisplayData(state.selectedNode);
             sigma.getCamera().animate(nodePosition, {
                 duration: 500,
             });
         } else {
-            setSelectedNode(undefined);
             state.suggestions = new Set(suggestions.map(({ id }) => id));
+            setSelectedNode(undefined);
         }
     } else {
-        setSelectedNode(undefined);
         state.suggestions = undefined;
+        setSelectedNode(undefined);
     }
-
-    sigma.refresh({ skipIndexation: true });
 }
 
 searchInput.addEventListener("input", () => {

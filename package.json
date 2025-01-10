@@ -1,6 +1,6 @@
 {
   "name": "haxe-deps-viewer",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Haxe dependencies viewer.",
   "author": "Peter Achberger",
   "license": "MIT",
