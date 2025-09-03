@@ -73,8 +73,8 @@ visual.add(config, 'visualLabelsDensity', 0.1, 3).name('labels density');
 const exclusions = gui.addFolder('Exclusions').close();
 exclusions.add(config, 'hideStd').name('hide Haxe Std library');
 exclusions.add(config, 'hideImport').name('hide import.hx');
-exclusions.add(config, 'hideMinDeps', -1, 30, 1).name('if <= N dependencies');
-exclusions.add(config, 'hideMinDependents', -1, 30, 1).name('if <= N dependents');
+exclusions.add(config, 'hideMinDeps', -1, 30, 1).name('if <= N total dependencies');
+exclusions.add(config, 'hideMinDependents', -1, 30, 1).name('if <= N total dependents');
 function addCustomStringValues(root, folderName, arr) {
     const customFolder = root.addFolder(folderName);
     function addCustom(custom) {

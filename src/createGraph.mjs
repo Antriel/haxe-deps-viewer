@@ -4,7 +4,6 @@ import circlepack from 'graphology-layout/circlepack';
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import randomColor from "randomcolor";
-import { bidirectional } from 'graphology-shortest-path/unweighted';
 
 let layout;
 let abort;
@@ -136,6 +135,91 @@ export default function createGraph(deps, config) {
         else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
     }
 
+    // Filter nodes based on minimum dependency/dependent count (before building graph)
+    if (config.hideMinDeps > -1 || config.hideMinDependents > -1) {
+        const allNodes = new Set();
+        for (const [root, children] of deps.entries()) {
+            allNodes.add(root);
+            for (const child of children) allNodes.add(child);
+        }
+
+        // Efficient recursive dependency calculation with memoization
+        const cache = new Map();
+        
+        const getAllReachable = (startNode, direction) => {
+            const cacheKey = `${startNode.path}_${direction}`;
+            if (cache.has(cacheKey)) return cache.get(cacheKey);
+            
+            const result = new Set();
+            const toVisit = [startNode];
+            const visited = new Set([startNode]); // Start node doesn't count as reachable from itself
+            
+            while (toVisit.length > 0) {
+                const current = toVisit.shift();
+                
+                if (direction === 'deps') {
+                    // Forward: find dependencies (children)
+                    const children = deps.get(current);
+                    if (children) {
+                        for (const child of children) {
+                            if (!visited.has(child)) {
+                                visited.add(child);
+                                result.add(child);
+                                toVisit.push(child);
+                            }
+                        }
+                    }
+                } else {
+                    // Backward: find dependents (parents)
+                    for (const [root, children] of deps.entries()) {
+                        if (children.has(current) && !visited.has(root)) {
+                            visited.add(root);
+                            result.add(root);
+                            toVisit.push(root);
+                        }
+                    }
+                }
+            }
+            
+            cache.set(cacheKey, result);
+            return result;
+        };
+
+        const nodesToRemove = [];
+        for (const node of allNodes) {
+            let shouldRemove = false;
+            
+            if (config.hideMinDeps > -1) {
+                const totalDeps = getAllReachable(node, 'deps').size;
+                if (totalDeps <= config.hideMinDeps) {
+                    shouldRemove = true;
+                }
+            }
+            
+            if (config.hideMinDependents > -1 && !shouldRemove) {
+                const totalDependents = getAllReachable(node, 'dependents').size;
+                if (totalDependents <= config.hideMinDependents) {
+                    shouldRemove = true;
+                }
+            }
+            
+            if (shouldRemove) {
+                nodesToRemove.push(node);
+            }
+        }
+
+        // Remove filtered nodes from deps map
+        for (const node of nodesToRemove) {
+            for (const [root, children] of deps.entries()) {
+                if (root === node) {
+                    deps.delete(root);
+                } else {
+                    children.delete(node);
+                }
+            }
+        }
+    }
+
     const graph = new Graph({ /* multi: true */ });
     const posGraph = new Graph({ multi: true });
     graph.setAttribute('posGraph', posGraph);
@@ -194,60 +278,6 @@ export default function createGraph(deps, config) {
         return total;
     }
     for (const { node, attributes } of graph.nodeEntries()) attributes.degree = getDegree(node);
-    
-    // Filter nodes based on minimum dependency/dependent count
-    if (config.hideMinDeps > -1 || config.hideMinDependents > -1) {
-        const nodesToRemove = [];
-        for (const node of graph.nodes()) {
-            let shouldRemove = false;
-            
-            if (config.hideMinDeps > -1) {
-                let totalDeps = 0;
-                for (const other of graph.nodes()) {
-                    if (other !== node) {
-                        const path = bidirectional(graph, node, other);
-                        if (path) totalDeps++;
-                    }
-                }
-                if (totalDeps <= config.hideMinDeps) {
-                    shouldRemove = true;
-                }
-            }
-            
-            if (config.hideMinDependents > -1 && !shouldRemove) {
-                let totalDependents = 0;
-                for (const other of graph.nodes()) {
-                    if (other !== node) {
-                        const path = bidirectional(graph, other, node);
-                        if (path) totalDependents++;
-                    }
-                }
-                if (totalDependents <= config.hideMinDependents) {
-                    shouldRemove = true;
-                }
-            }
-            
-            if (shouldRemove) {
-                nodesToRemove.push(node);
-            }
-        }
-        for (const node of nodesToRemove) {
-            graph.dropNode(node);
-            posGraph.dropNode(node);
-            // Also remove from deps map
-            for (const [root, children] of deps.entries()) {
-                if (root.path === node) {
-                    deps.delete(root);
-                } else {
-                    for (const child of children) {
-                        if (child.path === node) {
-                            children.delete(child);
-                        }
-                    }
-                }
-            }
-        }
-    }
     
     const maxDegree = graph.reduceNodes((max, _, atts) => Math.max(max, atts.degree), 0);
     const minRadius = Math.min(config.visualSizeMin, config.visualSizeMax);
