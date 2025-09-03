@@ -4,6 +4,7 @@ import circlepack from 'graphology-layout/circlepack';
 import forceAtlas2 from "graphology-layout-forceatlas2";
 import FA2Layout from 'graphology-layout-forceatlas2/worker';
 import randomColor from "randomcolor";
+import { bidirectional } from 'graphology-shortest-path/unweighted';
 
 let layout;
 let abort;
@@ -42,6 +43,8 @@ const labelHaxelib = [
  * @property {boolean} hideStd
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
+ * @property {number} hideMinDeps
+ * @property {number} hideMinDependents
  * @property {boolean} smartLabelsStd
  * @property {boolean} smartLabelsSrc
  * @property {boolean} smartLabelsHaxelib
@@ -191,6 +194,61 @@ export default function createGraph(deps, config) {
         return total;
     }
     for (const { node, attributes } of graph.nodeEntries()) attributes.degree = getDegree(node);
+    
+    // Filter nodes based on minimum dependency/dependent count
+    if (config.hideMinDeps > -1 || config.hideMinDependents > -1) {
+        const nodesToRemove = [];
+        for (const node of graph.nodes()) {
+            let shouldRemove = false;
+            
+            if (config.hideMinDeps > -1) {
+                let totalDeps = 0;
+                for (const other of graph.nodes()) {
+                    if (other !== node) {
+                        const path = bidirectional(graph, node, other);
+                        if (path) totalDeps++;
+                    }
+                }
+                if (totalDeps <= config.hideMinDeps) {
+                    shouldRemove = true;
+                }
+            }
+            
+            if (config.hideMinDependents > -1 && !shouldRemove) {
+                let totalDependents = 0;
+                for (const other of graph.nodes()) {
+                    if (other !== node) {
+                        const path = bidirectional(graph, other, node);
+                        if (path) totalDependents++;
+                    }
+                }
+                if (totalDependents <= config.hideMinDependents) {
+                    shouldRemove = true;
+                }
+            }
+            
+            if (shouldRemove) {
+                nodesToRemove.push(node);
+            }
+        }
+        for (const node of nodesToRemove) {
+            graph.dropNode(node);
+            posGraph.dropNode(node);
+            // Also remove from deps map
+            for (const [root, children] of deps.entries()) {
+                if (root.path === node) {
+                    deps.delete(root);
+                } else {
+                    for (const child of children) {
+                        if (child.path === node) {
+                            children.delete(child);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
     const maxDegree = graph.reduceNodes((max, _, atts) => Math.max(max, atts.degree), 0);
     const minRadius = Math.min(config.visualSizeMin, config.visualSizeMax);
     const maxRadius = Math.max(config.visualSizeMin, config.visualSizeMax);
