@@ -44,6 +44,7 @@ const labelHaxelib = [
  * @property {{reg:string,enabled:boolean}[]} hideCustom
  * @property {number} hideMinDeps
  * @property {number} hideMinDependents
+ * @property {boolean} showOnlyCircular
  * @property {boolean} smartLabelsStd
  * @property {boolean} smartLabelsSrc
  * @property {boolean} smartLabelsHaxelib
@@ -52,6 +53,69 @@ const labelHaxelib = [
  * @property {{reg:string,enabled:boolean}[]} smartLabelsCustom
  * 
  */
+
+/**
+ * Detects cycles in the dependency map using DFS
+ * @param {Map<import('./parser.mjs').DepData, Set<import('./parser.mjs').DepData>>} deps
+ * @returns {Set<import('./parser.mjs').DepData>} Set of nodes that are part of cycles
+ */
+function detectCycles(deps) {
+    const WHITE = 0; // Unvisited
+    const GRAY = 1;  // Visiting (in current path)
+    const BLACK = 2; // Visited (completely processed)
+    
+    const colors = new Map();
+    const cycleNodes = new Set();
+    
+    // Initialize all nodes as WHITE
+    for (const [node, children] of deps) {
+        colors.set(node, WHITE);
+        for (const child of children) {
+            if (!colors.has(child)) colors.set(child, WHITE);
+        }
+    }
+    
+    function dfs(node, path = []) {
+        if (colors.get(node) === GRAY) {
+            // Found a cycle - mark all nodes in the cycle path
+            const cycleStartIndex = path.indexOf(node);
+            for (let i = cycleStartIndex; i < path.length; i++) {
+                cycleNodes.add(path[i]);
+            }
+            cycleNodes.add(node);
+            return true;
+        }
+        
+        if (colors.get(node) === BLACK) {
+            return false; // Already processed
+        }
+        
+        colors.set(node, GRAY);
+        path.push(node);
+        
+        const children = deps.get(node);
+        if (children) {
+            for (const child of children) {
+                if (dfs(child, path)) {
+                    cycleNodes.add(node); // This node is also part of cycle path
+                }
+            }
+        }
+        
+        path.pop();
+        colors.set(node, BLACK);
+        return false;
+    }
+    
+    // Run DFS from each unvisited node
+    for (const node of colors.keys()) {
+        if (colors.get(node) === WHITE) {
+            dfs(node);
+        }
+    }
+    
+    return cycleNodes;
+}
 
 /**
  * @param {Map<import('./parser.mjs').DepData, Set<import('./parser.mjs').DepData>>} deps
@@ -133,6 +197,33 @@ export default function createGraph(deps, config) {
     for (const [root, children] of deps.entries()) {
         if (shouldRemove(root)) deps.delete(root);
         else for (const ch of children) if (shouldRemove(ch)) children.delete(ch);
+    }
+
+    // Filter to show only circular dependencies if enabled
+    if (config.showOnlyCircular) {
+        const cycleNodes = detectCycles(deps);
+        const nodesToRemove = [];
+        
+        // Collect nodes that are not part of any cycle
+        for (const [root, children] of deps.entries()) {
+            if (!cycleNodes.has(root)) {
+                nodesToRemove.push(root);
+            }
+        }
+        
+        // Remove non-cycle nodes from deps map
+        for (const node of nodesToRemove) {
+            deps.delete(node);
+        }
+        
+        // Also remove non-cycle children from remaining nodes
+        for (const [root, children] of deps.entries()) {
+            for (const child of children) {
+                if (!cycleNodes.has(child)) {
+                    children.delete(child);
+                }
+            }
+        }
     }
 
     // Filter nodes based on minimum dependency/dependent count (before building graph)
