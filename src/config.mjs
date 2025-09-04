@@ -42,33 +42,31 @@ infoButton.innerHTML = '📖';
 infoButton.title = 'Show documentation';
 infoButton.style.cssText = `
     position: fixed;
-    top: 0;
-    left: 245px;
-    background: #f0f0f0;
-    border: 1px solid #ccc;
+    top: 8px;
+    left: 260px;
+    background: transparent;
+    border: none;
     color: #333;
-    font-size: 20px;
+    font-size: 28px;
     cursor: pointer;
-    padding: 12px 14px;
-    border-radius: 6px;
+    padding: 0;
+    border-radius: 0;
     transition: all 0.2s;
     z-index: 1000;
-    height: 36px;
-    width: 44px;
+    height: auto;
+    width: auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
 `;
 infoButton.onmouseover = () => {
-    infoButton.style.backgroundColor = '#e0e0e0';
-    infoButton.style.transform = 'translateY(-1px)';
-    infoButton.style.boxShadow = '0 5px 10px rgba(0,0,0,0.4)';
+    infoButton.style.transform = 'translateY(-2px) scale(1.1)';
+    infoButton.style.filter = 'drop-shadow(0 6px 12px rgba(0,0,0,0.4))';
 };
 infoButton.onmouseout = () => {
-    infoButton.style.backgroundColor = '#f0f0f0';
-    infoButton.style.transform = 'translateY(0)';
-    infoButton.style.boxShadow = '0 3px 6px rgba(0,0,0,0.3)';
+    infoButton.style.transform = 'translateY(0) scale(1)';
+    infoButton.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))';
 };
 infoButton.onclick = showDocumentation;
 
