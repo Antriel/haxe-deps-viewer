@@ -43,7 +43,7 @@ const labelHaxelib = [
  * @property {boolean} hideImport
  * @property {{reg:string,enabled:boolean}[]} hideCustom
  * @property {number} hideMinDeps
- * @property {number} hideMinDependents
+ * @property {number} hideMinDependants
  * @property {boolean} showOnlyCircular
  * @property {boolean} smartLabelsStd
  * @property {boolean} smartLabelsSrc
@@ -226,8 +226,8 @@ export default function createGraph(deps, config) {
         }
     }
 
-    // Filter nodes based on minimum dependency/dependent count (before building graph)
-    if (config.hideMinDeps > -1 || config.hideMinDependents > -1) {
+    // Filter nodes based on minimum dependency/dependant count (before building graph)
+    if (config.hideMinDeps > -1 || config.hideMinDependants > -1) {
         const allNodes = new Set();
         for (const [root, children] of deps.entries()) {
             allNodes.add(root);
@@ -261,7 +261,7 @@ export default function createGraph(deps, config) {
                         }
                     }
                 } else {
-                    // Backward: find dependents (parents)
+                    // Backward: find dependants (parents)
                     for (const [root, children] of deps.entries()) {
                         if (children.has(current) && !visited.has(root)) {
                             visited.add(root);
@@ -287,9 +287,9 @@ export default function createGraph(deps, config) {
                 }
             }
             
-            if (config.hideMinDependents > -1 && !shouldRemove) {
-                const totalDependents = getAllReachable(node, 'dependents').size;
-                if (totalDependents <= config.hideMinDependents) {
+            if (config.hideMinDependants > -1 && !shouldRemove) {
+                const totalDependants = getAllReachable(node, 'dependants').size;
+                if (totalDependants <= config.hideMinDependants) {
                     shouldRemove = true;
                 }
             }

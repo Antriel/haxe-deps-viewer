@@ -11,7 +11,7 @@ Use this tool to visualize your [Haxe](https://haxe.org/) dependencies.
 - You can:
   - Search for a node.
   - Activate a node by clicking on it.
-  - See its direct/all dependencies/dependents and see the counts.
+  - See its direct/all dependencies/dependants and see the counts.
   - Change visualization parameters, like node sizes.
   - Rename nodes based on regexes, to lower the visual clutter.
   - Exclude nodes based on regexes.
