@@ -77,7 +77,7 @@ exclusions.add(config, 'hideImport').name('hide import.hx');
 exclusions.add(config, 'showOnlyCircular').name('show only circular dependencies');
 exclusions.add(config, 'hideMinDeps', -1, 30, 1).name('if <= N total dependencies');
 exclusions.add(config, 'hideMinDependents', -1, 30, 1).name('if <= N total dependents');
-function addCustomStringValues(root, folderName, arr) {
+function addCustomStringValues(root, folderName, arr, defaultRegex = '.+foobar.+') {
     const customFolder = root.addFolder(folderName);
     function addCustom(custom) {
         let controls = [
@@ -100,14 +100,14 @@ function addCustomStringValues(root, folderName, arr) {
     }
     customFolder.add({
         add: () => {
-            const custom = { reg: '.+foobar.+', enabled: true };
+            const custom = { reg: defaultRegex, enabled: true };
             arr.push(custom);
             addCustom(custom);
         }
     }, 'add');
     for (const custom of arr) addCustom(custom);
 }
-addCustomStringValues(exclusions, 'Custom RegEx Exclusions', config.hideCustom);
+addCustomStringValues(exclusions, 'Custom RegEx Exclusions', config.hideCustom, '.+library\\/.+');
 
 const labels = gui.addFolder('Smart Labels').close();
 labels.add(config, 'smartLabelsStd').name('extract Haxe Std lib');
@@ -115,7 +115,7 @@ labels.add(config, 'smartLabelsSrc').name('extract after src/');
 labels.add(config, 'smartLabelsHaxelib').name('try extract haxelib paths')
 labels.add(config, 'smartLabelsPrefix').name('remove common prefix');
 labels.add(config, 'smartLabelsShowMacro').name('mark macros in labels');
-addCustomStringValues(labels, 'Custom Smart Labels (Use Capture Group)', config.smartLabelsCustom);
+addCustomStringValues(labels, 'Custom Smart Labels (Use Capture Group)', config.smartLabelsCustom, 'src\\/(.+)');
 
 const layout = gui.addFolder('Layout/Simulation (Quite Fiddly...)').close();
 layout.add(config, 'layoutEnable').name('enable simulation');
